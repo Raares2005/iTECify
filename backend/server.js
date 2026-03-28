@@ -5,7 +5,7 @@ dotenv.config();
 import cookieParser from "cookie-parser";
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 import connectDB from "./config/db.js";
-import userRouter from "./routes/userRoutes.js";
+import userRouter from "../backend/routes/userRoutes.js";
 
 const port = process.env.PORT || 5000;
 
@@ -19,3 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use("/api/users", userRouter);
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});

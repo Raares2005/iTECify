@@ -1,53 +1,80 @@
-import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Form, Button, Row, Col } from 'react-bootstrap';
+import { useDispatch, useSelector } from 'react-redux';
+import FormContainer from '../components/FormContainer';
+import { useLoginMutation } from '../slices/userApiSlice';
 import { setCredentials } from '../slices/authSlice';
+import { toast } from 'react-toastify';
+import Loader from '../components/Loader';
 
-function LoginScreen() {
+const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const dispatch = useDispatch();
+
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const submitHandler = (e) => {
+  const [login, { isLoading }] = useLoginMutation();
+
+  const { userInfo } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (userInfo) {
+      navigate('/');
+    }
+  }, [navigate, userInfo]);
+
+  const submitHandler = async (e) => {
     e.preventDefault();
-
-    const fakeUser = {
-      email,
-      token: 'demo-token',
-    };
-
-    dispatch(setCredentials(fakeUser));
-    navigate('/code');
+    try {
+      const res = await login({ email, password }).unwrap();
+      dispatch(setCredentials({ ...res }));
+      navigate('/');
+    } catch (err) {
+      toast.error(err?.data?.message || err.error);
+    }
   };
 
   return (
-    <div>
+    <FormContainer>
       <h1>Sign In</h1>
 
-      <form onSubmit={submitHandler}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+      <Form onSubmit={submitHandler}>
+        <Form.Group className='my-2' controlId='email'>
+          <Form.Label>Email Address</Form.Label>
+          <Form.Control
+            type='email'
+            placeholder='Enter email'
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          ></Form.Control>
+        </Form.Group>
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <Form.Group className='my-2' controlId='password'>
+          <Form.Label>Password</Form.Label>
+          <Form.Control
+            type='password'
+            placeholder='Enter password'
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          ></Form.Control>
+        </Form.Group>
 
-        <button type="submit">Sign In</button>
-      </form>
+    { isLoading && <Loader />}
 
-      <p>
-        No account? <Link to="/register">Register</Link>
-      </p>
-    </div>
+        <Button type='submit' variant='primary' className='mt-3'>
+          Sign In
+        </Button>
+      </Form>
+
+      <Row className='py-3'>
+        <Col>
+          New Customer? <Link to={`/register`}>Register</Link>
+        </Col>
+      </Row>
+    </FormContainer>
   );
-}
+};
 
 export default LoginScreen;
