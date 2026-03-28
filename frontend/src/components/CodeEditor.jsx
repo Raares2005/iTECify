@@ -17,9 +17,43 @@ function CodeEditor({
   const monacoRef = useRef(null)
   const collaborationRef = useRef(null)
   const isInitialized = useRef(false)
+  const decorationIdsRef = useRef([])
+  const styleElementRef = useRef(null)
 
   const [collaborators, setCollaborators] = useState([])
   const userColor = useMemo(() => randomColor(), [])
+
+  const injectCursorStyle = (clientId, color, name) => {
+    if (!styleElementRef.current) {
+      styleElementRef.current = document.createElement('style')
+      document.head.appendChild(styleElementRef.current)
+    }
+
+    const styleId = `remote-line-${clientId}`
+    const css = `
+      .${styleId} {
+        background: ${color}22;
+      }
+
+      .${styleId}::after {
+        content: "${name}";
+        position: absolute;
+        right: 16px;
+        top: 0;
+        background: ${color};
+        color: black;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 999px;
+        pointer-events: none;
+      }
+    `
+
+    if (!styleElementRef.current.innerHTML.includes(styleId)) {
+      styleElementRef.current.innerHTML += css
+    }
+  }
 
   const handleMount = (editor, monaco) => {
     if (isInitialized.current) return
@@ -29,12 +63,7 @@ function CodeEditor({
     monacoRef.current = monaco
 
     const ydoc = new Y.Doc()
-
-    const provider = new WebsocketProvider(
-      'ws://localhost:1234',
-      roomName,
-      ydoc
-    )
+    const provider = new WebsocketProvider('ws://localhost:1234', roomName, ydoc)
 
     provider.awareness.setLocalStateField('user', {
       name: userName,
@@ -42,20 +71,59 @@ function CodeEditor({
       avatar: userName?.[0]?.toUpperCase() || 'U'
     })
 
+    const updateLocalCursor = () => {
+      const position = editor.getPosition()
+      if (!position) return
+
+      provider.awareness.setLocalStateField('cursor', {
+        lineNumber: position.lineNumber
+      })
+    }
+
     const updateCollaborators = () => {
       const states = Array.from(provider.awareness.getStates().entries())
 
       const users = states
         .map(([clientId, state]) => ({
           clientId,
-          ...(state.user || {})
+          ...(state.user || {}),
+          cursor: state.cursor || null
         }))
         .filter(user => user.name)
 
       setCollaborators(users)
+
+      const remoteUsers = users.filter(
+        user => user.clientId !== provider.awareness.clientID
+      )
+      const decorations = []
+
+      remoteUsers.forEach(user => {
+        const lineNumber = user.cursor?.lineNumber
+        if (!lineNumber) return
+
+        const className = `remote-line-${user.clientId}`
+        injectCursorStyle(user.clientId, user.color || '#666', user.name)
+
+        decorations.push({
+          range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+          options: {
+            isWholeLine: true,
+            className
+          }
+        })
+      })
+
+      decorationIdsRef.current = editor.deltaDecorations(
+        decorationIdsRef.current,
+        decorations
+      )
     }
 
     provider.awareness.on('change', updateCollaborators)
+    editor.onDidChangeCursorPosition(updateLocalCursor)
+
+    updateLocalCursor()
     updateCollaborators()
 
     provider.on('status', event => {
@@ -93,6 +161,18 @@ function CodeEditor({
 
         collaborationRef.current = null
         isInitialized.current = false
+      }
+
+      if (editorRef.current) {
+        decorationIdsRef.current = editorRef.current.deltaDecorations(
+          decorationIdsRef.current,
+          []
+        )
+      }
+
+      if (styleElementRef.current) {
+        styleElementRef.current.remove()
+        styleElementRef.current = null
       }
     }
 
