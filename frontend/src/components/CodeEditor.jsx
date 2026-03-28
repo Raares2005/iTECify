@@ -9,9 +9,24 @@ function randomColor() {
   return colors[Math.floor(Math.random() * colors.length)]
 }
 
+function getLanguageFromFileName(fileName) {
+  if (fileName.endsWith('.js')) return 'javascript'
+  if (fileName.endsWith('.jsx')) return 'javascript'
+  if (fileName.endsWith('.ts')) return 'typescript'
+  if (fileName.endsWith('.tsx')) return 'typescript'
+  if (fileName.endsWith('.json')) return 'json'
+  if (fileName.endsWith('.css')) return 'css'
+  if (fileName.endsWith('.html')) return 'html'
+  if (fileName.endsWith('.py')) return 'python'
+  if (fileName.endsWith('.java')) return 'java'
+  if (fileName.endsWith('.cpp')) return 'cpp'
+  return 'plaintext'
+}
+
 function CodeEditor({
   roomName = 'file:src/App.js',
-  userName = 'Guest'
+  userName = 'Guest',
+  fileId
 }) {
   const editorRef = useRef(null)
   const monacoRef = useRef(null)
@@ -19,6 +34,9 @@ function CodeEditor({
   const isInitialized = useRef(false)
   const decorationIdsRef = useRef([])
   const styleElementRef = useRef(null)
+  const saveTimeoutRef = useRef(null)
+  const hasLoadedInitialContentRef = useRef(false)
+  const isApplyingInitialContentRef = useRef(false)
 
   const [collaborators, setCollaborators] = useState([])
   const userColor = useMemo(() => randomColor(), [])
@@ -55,7 +73,45 @@ function CodeEditor({
     }
   }
 
-  const handleMount = (editor, monaco) => {
+  const saveFileToBackend = async (content) => {
+    if (!fileId) return
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/files/${fileId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content })
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to save file')
+      }
+
+      console.log('File saved')
+    } catch (error) {
+      console.error('Error saving file:', error)
+    }
+  }
+
+  const scheduleSave = (content) => {
+    if (!fileId) return
+    if (!hasLoadedInitialContentRef.current) return
+    if (isApplyingInitialContentRef.current) return
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      saveFileToBackend(content)
+    }, 500)
+  }
+
+  const handleMount = async (editor, monaco) => {
     if (isInitialized.current) return
     isInitialized.current = true
 
@@ -96,6 +152,7 @@ function CodeEditor({
       const remoteUsers = users.filter(
         user => user.clientId !== provider.awareness.clientID
       )
+
       const decorations = []
 
       remoteUsers.forEach(user => {
@@ -130,8 +187,18 @@ function CodeEditor({
       console.log('WebSocket status:', event.status)
     })
 
-    const yText = ydoc.getText('monaco')
-    const model = editor.getModel()
+    const uri = monaco.Uri.parse(`file://${roomName}`)
+    const language = getLanguageFromFileName(roomName)
+
+    let model = monaco.editor.getModel(uri)
+
+    if (!model) {
+      model = monaco.editor.createModel('', language, uri)
+    }
+
+    editor.setModel(model)
+
+    const yText = ydoc.getText(roomName)
 
     const binding = new MonacoBinding(
       yText,
@@ -140,20 +207,70 @@ function CodeEditor({
       provider.awareness
     )
 
+    const handleYTextChange = () => {
+      const content = yText.toString()
+      scheduleSave(content)
+    }
+
+    yText.observe(handleYTextChange)
+
     collaborationRef.current = {
       ydoc,
       provider,
       binding,
-      updateCollaborators
+      updateCollaborators,
+      yText,
+      handleYTextChange
+    }
+
+    if (fileId) {
+      try {
+        const res = await fetch(`http://localhost:5000/api/files/${fileId}`)
+        const data = await res.json()
+
+        if (!res.ok) {
+          throw new Error(data.message || 'Failed to load file')
+        }
+
+        const initialContent = data.content || ''
+
+        isApplyingInitialContentRef.current = true
+
+        ydoc.transact(() => {
+          yText.delete(0, yText.length)
+          yText.insert(0, initialContent)
+        })
+
+        isApplyingInitialContentRef.current = false
+        hasLoadedInitialContentRef.current = true
+      } catch (error) {
+        isApplyingInitialContentRef.current = false
+        console.error('Error loading file:', error)
+      }
+    } else {
+      hasLoadedInitialContentRef.current = true
     }
   }
 
   useEffect(() => {
     const cleanup = () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+        saveTimeoutRef.current = null
+      }
+
       if (collaborationRef.current) {
-        const { binding, provider, ydoc, updateCollaborators } = collaborationRef.current
+        const {
+          binding,
+          provider,
+          ydoc,
+          updateCollaborators,
+          yText,
+          handleYTextChange
+        } = collaborationRef.current
 
         provider.awareness.off('change', updateCollaborators)
+        yText.unobserve(handleYTextChange)
         provider.disconnect()
         binding.destroy()
         provider.destroy()
@@ -174,6 +291,9 @@ function CodeEditor({
         styleElementRef.current.remove()
         styleElementRef.current = null
       }
+
+      hasLoadedInitialContentRef.current = false
+      isApplyingInitialContentRef.current = false
     }
 
     window.addEventListener('beforeunload', cleanup)
@@ -182,14 +302,15 @@ function CodeEditor({
       cleanup()
       window.removeEventListener('beforeunload', cleanup)
     }
-  }, [])
+  }, [roomName, fileId])
 
   return (
     <div
       style={{
         position: 'relative',
         height: '100vh',
-        width: '100vw',
+        width: '80vw',
+        left: '20vw'
       }}
     >
       <div
@@ -229,8 +350,8 @@ function CodeEditor({
 
       <Editor
         height="100%"
-        defaultLanguage="javascript"
-        defaultValue=""
+        path={roomName}
+        defaultLanguage={getLanguageFromFileName(roomName)}
         onMount={handleMount}
       />
     </div>
