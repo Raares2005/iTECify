@@ -1,12 +1,13 @@
-import React from 'react'
-import CodeEditor from './components/CodeEditor'
+import React from 'react';
+import { Outlet } from 'react-router-dom';
 
 function App() {
   return (
     <div>
-      <CodeEditor roomName="file:src/App.js" userName="Guest"/>
+      <h1>Layout</h1>
+      <Outlet />
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
