@@ -96,7 +96,7 @@ function FileExplorer({ onSelectFile, selectedFileId }) {
         {files.map((file) => (
           <div
             key={file._id}
-            onClick={() => onSelectFile(file._id)}
+            onClick={() => onSelectFile && onSelectFile(file._id)}
             style={{
               padding: '6px',
               borderBottom: '1px solid #ccc',
