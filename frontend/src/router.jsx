@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   createBrowserRouter,
   createRoutesFromElements,
@@ -10,7 +9,7 @@ import {
 import PublicRoute from './components/PublicRoute.jsx';
 import PrivateRoute from './components/PrivateRoute.jsx';
 import LoginScreen from './screens/LoginScreen';
-import RegisterScreen from './screens/RegisterScreen.jsx';
+import RegisterScreen from './screens/RegisterScreen';
 import CodeScreen from './screens/CodeScreen';
 
 function AppLayout() {
