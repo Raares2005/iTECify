@@ -11,22 +11,20 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 import CodeEditor from './components/CodeEditor.jsx'
 import store from './store';
-
+import App from './App.js'
 import PrivateRoute from './components/PrivateRoute.jsx';
-import HomeScreen from './screens/HomeScreen.jsx';
-import LoginScreen from './screens/LoginScreen.jsx';
-import RegisterScreen from './screens/RegisterScreen.jsx';
-import ProfileScreen from './screens/ProfileScreen.jsx';
+import signIn from './components/signIn.jsx';
+import signUp from './components/signUp.jsx';
 
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route path="code" element={<CodeEditor />}>
-      <Route index element={<HomeScreen />} />
-      <Route path="login" element={<LoginScreen />} />
-      <Route path="register" element={<RegisterScreen />} />
-
+    <Route path="/" element={<App />}>
+      <Route index element={<signIn />} />
+      <Route path="signIn" element={<signIn />} />
+      <Route path="signUp" element={<signUp />} />
+      <Route path="code" element={<CodeEditor/>} />
       <Route element={<PrivateRoute />}>
-        <Route path="profile" element={<ProfileScreen />} />
+        {/* <Route path="profile" element={<ProfileScreen />} /> */}
       </Route>
     </Route>
   )

@@ -9,7 +9,7 @@ import { logoutUser } from "../controllers/userControllers/signOutUserController
 
 import { protect } from "../middleware/authMiddleware.js";
 
-userRouter.post("/", createUser);
+userRouter.post("/createUser", createUser);
 userRouter.post("/auth", authUser);
 userRouter.post("/logout", logoutUser);
 // userRouter.route("/profile").get(protect, getUserProfile).put(protect, updateUserProfile);
