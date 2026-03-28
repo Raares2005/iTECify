@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-function FileExplorer() {
+function FileExplorer({ onSelectFile, selectedFileId }) {
   const [files, setFiles] = useState([]);
 
   useEffect(() => {
@@ -9,16 +9,22 @@ function FileExplorer() {
 
   const fetchFiles = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/files');
-      const data = await res.json();
+      const res = await fetch("http://localhost:5000/api/files");
+      const text = await res.text();
+      console.log("fetchFiles response:", text);
+
+      const data = JSON.parse(text);
       setFiles(data);
     } catch (err) {
-      console.error(err);
+      console.error("Error loading files:", err);
     }
   };
 
   const handleAddFile = async () => {
-    const fileName = prompt('Enter file name:');
+    console.log("Add clicked");
+    const fileName = prompt("Enter file name:");
+    console.log("fileName:", fileName);
+
     if (!fileName || !fileName.trim()) return;
 
     try {
@@ -32,8 +38,10 @@ function FileExplorer() {
 
       if (!res.ok) throw new Error(data.message);
 
-      // 🔹 update UI instantly
       setFiles((prev) => [...prev, data]);
+
+      // automatically open new file
+      onSelectFile(data._id);
     } catch (err) {
       console.error('Error creating file:', err);
     }
@@ -75,7 +83,7 @@ function FileExplorer() {
             boxSizing: 'border-box',
             transition: 'background 0.15s ease',
           }}
-          onClick={handleAddFile} // ✅ THIS LINE WAS MISSING
+          onClick={handleAddFile}
           onMouseDown={(e) => (e.currentTarget.style.background = '#ddd')}
           onMouseUp={(e) => (e.currentTarget.style.background = 'white')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'white')}
@@ -84,15 +92,16 @@ function FileExplorer() {
         </button>
       </div>
 
-      {/* 🔹 file list */}
       <div style={{ padding: '10px' }}>
         {files.map((file) => (
           <div
             key={file._id}
+            onClick={() => onSelectFile(file._id)}
             style={{
               padding: '6px',
               borderBottom: '1px solid #ccc',
               cursor: 'pointer',
+              background: selectedFileId === file._id ? '#dbeafe' : 'white',
             }}
           >
             {file.name}
