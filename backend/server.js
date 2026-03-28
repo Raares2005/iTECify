@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 import connectDB from "./config/db.js";
 import userRouter from "./routes/userRoutes.js";
+import fileRouter from "./routes/fileRoutes.js";
 
 
 const port = process.env.PORT || 5000;
@@ -21,6 +22,7 @@ app.use(errorHandler);
 app.use(cookieParser());
 
 app.use("/api/users", userRouter);
+app.use("/api/files", fileRouter);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

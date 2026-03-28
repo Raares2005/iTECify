@@ -1,3 +1,5 @@
+import mongoose from "mongoose"
+
 const fileSchema = new mongoose.Schema({
   name: String,
   content: String, // actual file content
@@ -6,3 +8,5 @@ const fileSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const File = mongoose.model('File', fileSchema);
+
+export default File;

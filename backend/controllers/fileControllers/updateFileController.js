@@ -1,5 +1,5 @@
 import asyncHandler from 'express-async-handler';
-import mongoose from 'mongoose';
+import mongoose from "mongoose"
 import File from '../../models/fileModel.js';
 
 export const updateFileContent = asyncHandler(async (req, res) => {
