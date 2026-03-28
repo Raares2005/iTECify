@@ -1,4 +1,4 @@
-import React, { useEffect, useRef,  useState, useMemo} from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import * as Y from 'yjs'
 import { WebsocketProvider } from 'y-websocket'
 import { MonacoBinding } from 'y-monaco'
@@ -9,19 +9,24 @@ function randomColor() {
   return colors[Math.floor(Math.random() * colors.length)]
 }
 
-function CodeEditor({ 
-  roomName = 'room a',
+function CodeEditor({
+  roomName = 'file:src/App.js',
   userName = 'Guest'
- }) {
+}) {
   const editorRef = useRef(null)
   const monacoRef = useRef(null)
+  const collaborationRef = useRef(null)
+  const isInitialized = useRef(false)
 
   const [collaborators, setCollaborators] = useState([])
+  const userColor = useMemo(() => randomColor(), [])
 
-   const userColor = useMemo(() => randomColor(), [])
+  const handleMount = (editor, monaco) => {
+    if (isInitialized.current) return
+    isInitialized.current = true
 
-  useEffect(() => {
-    if (!editorRef.current || !monacoRef.current) return
+    editorRef.current = editor
+    monacoRef.current = monaco
 
     const ydoc = new Y.Doc()
 
@@ -39,6 +44,7 @@ function CodeEditor({
 
     const updateCollaborators = () => {
       const states = Array.from(provider.awareness.getStates().entries())
+
       const users = states
         .map(([clientId, state]) => ({
           clientId,
@@ -52,25 +58,61 @@ function CodeEditor({
     provider.awareness.on('change', updateCollaborators)
     updateCollaborators()
 
+    provider.on('status', event => {
+      console.log('WebSocket status:', event.status)
+    })
+
     const yText = ydoc.getText('monaco')
-    const model = editorRef.current.getModel()
+    const model = editor.getModel()
 
     const binding = new MonacoBinding(
       yText,
       model,
-      new Set([editorRef.current]),
+      new Set([editor]),
       provider.awareness
     )
 
-    return () => {
-      binding.destroy()
-      provider.destroy()
-      ydoc.destroy()
+    collaborationRef.current = {
+      ydoc,
+      provider,
+      binding,
+      updateCollaborators
     }
-  }, [roomName, userName, userColor])
+  }
+
+  useEffect(() => {
+    const cleanup = () => {
+      if (collaborationRef.current) {
+        const { binding, provider, ydoc, updateCollaborators } = collaborationRef.current
+
+        provider.awareness.off('change', updateCollaborators)
+        provider.disconnect()
+        binding.destroy()
+        provider.destroy()
+        ydoc.destroy()
+
+        collaborationRef.current = null
+        isInitialized.current = false
+      }
+    }
+
+    window.addEventListener('beforeunload', cleanup)
+
+    return () => {
+      cleanup()
+      window.removeEventListener('beforeunload', cleanup)
+    }
+  }, [])
 
   return (
-    <div style={{ position: 'relative', height: '100vh' }}>
+    <div
+      style={{
+        position: 'relative',
+        height: '100vh',
+        width: '50vw',
+        top: '20vh'
+      }}
+    >
       <div
         style={{
           position: 'absolute',
@@ -110,10 +152,7 @@ function CodeEditor({
         height="100%"
         defaultLanguage="javascript"
         defaultValue=""
-        onMount={(editor, monaco) => {
-          editorRef.current = editor
-          monacoRef.current = monaco
-        }}
+        onMount={handleMount}
       />
     </div>
   )

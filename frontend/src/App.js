@@ -4,7 +4,7 @@ import CodeEditor from './components/CodeEditor'
 function App() {
   return (
     <div>
-      <CodeEditor roomName="room a" userName="Guest"/>
+      <CodeEditor roomName="file:src/App.js" userName="Guest"/>
     </div>
   )
 }
