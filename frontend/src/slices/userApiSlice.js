@@ -1,41 +1,36 @@
-import { apiSlice } from "./apiSlice";
-const USERS_URL = "/api/users";
+import { apiSlice } from './apiSlice';
+
+const USERS_URL = '/api/users';
 
 export const userApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     login: builder.mutation({
       query: (data) => ({
         url: `${USERS_URL}/auth`,
-        method: "POST",
+        method: 'POST',
         body: data,
       }),
     }),
+
     logout: builder.mutation({
       query: () => ({
         url: `${USERS_URL}/logout`,
-        method: "POST",
+        method: 'POST',
       }),
     }),
+
     register: builder.mutation({
       query: (data) => ({
-        url: `${USERS_URL}`,
-        method: "POST",
+        url: `${USERS_URL}/createUser`,
+        method: 'POST',
         body: data,
       }),
     }),
+
     getUserDetails: builder.query({
-      query: (data) => ({
+      query: () => ({
         url: `${USERS_URL}/profile`,
-        method: "PUT",
-        body: data,
-      }),
-      // providesTags: (result, error) => [{ type: "Profile" }],
-    }),
-    updateUser: builder.mutation({
-      query: (data) => ({
-        url: `${USERS_URL}/profile`,
-        method: "PUT",
-        body: data,
+        method: 'GET',
       }),
     }),
   }),
@@ -45,9 +40,5 @@ export const {
   useLoginMutation,
   useLogoutMutation,
   useRegisterMutation,
-  useUpdateUserMutation,
   useGetUserDetailsQuery,
-  middleware,
-  reducerPath: userApiReducerPath,
-  reducer: userApiReducer,
 } = userApiSlice;

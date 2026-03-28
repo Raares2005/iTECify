@@ -189,8 +189,7 @@ function CodeEditor({
       style={{
         position: 'relative',
         height: '100vh',
-        width: '50vw',
-        top: '20vh'
+        width: '100vw',
       }}
     >
       <div

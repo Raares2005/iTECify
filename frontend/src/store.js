@@ -1,33 +1,15 @@
-import { configureStore, combineReducers } from "@reduxjs/toolkit";
-import { useDispatch } from "react-redux"; 
-import authReducer from "./slices/authSlice";
-import {
-  middleware as userApiMiddleware,
-  userApiReducerPath,
-  userApiReducer,
-} from "./slices/userApiSlice";
+import { configureStore } from '@reduxjs/toolkit';
+import authReducer from './slices/authSlice';
+import { apiSlice } from './slices/apiSlice';
 
-const appReducer = combineReducers({
-  auth: authReducer,
-  [userApiReducerPath]: userApiReducer,
-});
-
-const reducerProxy = (state, action) => {
-  if (action.type === "global/reset") {
-    return appReducer(undefined, action); // Reset the state to initial state
-  }
-  return appReducer(state, action);
-};
-
-
-
-export const store = configureStore({
-  reducer: reducerProxy,
+const store = configureStore({
+  reducer: {
+    auth: authReducer,
+    [apiSlice.reducerPath]: apiSlice.reducer,
+  },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(userApiMiddleware),
+    getDefaultMiddleware().concat(apiSlice.middleware),
   devTools: true,
 });
 
 export default store;
-
-export const useAppDispatch = () => useDispatch(); 

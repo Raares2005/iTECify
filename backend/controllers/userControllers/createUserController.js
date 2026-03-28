@@ -11,10 +11,10 @@ export const createUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
   const isUser = await User.findOne({ email });
   if (isUser) {
-    res.status(400).send("User already exists!");
+    return res.status(400).send("User already exists!");
   }
   if (!isPassowrdValid(password) || !isEmailValid(email)) {
-    res.status(422).send("Mail or password not valid!");
+  return  res.status(422).send("Mail or password not valid!");
   }
   const user = await User.create({
     name,

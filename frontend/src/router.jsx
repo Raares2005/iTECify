@@ -5,15 +5,22 @@ import {
   Navigate,
   Outlet,
 } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-import PublicRoute from './components/PublicRoute.jsx';
-import PrivateRoute from './components/PrivateRoute.jsx';
+import PublicRoute from './components/PublicRoute';
+import PrivateRoute from './components/PrivateRoute';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import CodeScreen from './screens/CodeScreen';
 
 function AppLayout() {
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      <ToastContainer />
+    </>
+  );
 }
 
 const router = createBrowserRouter(
