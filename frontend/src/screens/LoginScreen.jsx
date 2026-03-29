@@ -7,6 +7,11 @@ import { useLoginMutation } from '../slices/userApiSlice';
 import { setCredentials } from '../slices/authSlice';
 import { toast } from 'react-toastify';
 import Loader from '../components/Loader';
+import ImageRegister from '../Images/backgroundRegisterLogin.svg'
+import BgVideo from '../Videos/Video1.mp4'
+import { useRef } from 'react';
+
+
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -17,6 +22,14 @@ const LoginScreen = () => {
 
   const [login, { isLoading }] = useLoginMutation();
   const { userInfo } = useSelector((state) => state.auth);
+
+  const videoRef = useRef(null);
+
+useEffect(() => {
+  if (videoRef.current) {
+    videoRef.current.playbackRate = 0.9;
+  }
+}, []);
 
   useEffect(() => {
     if (userInfo) {
@@ -37,7 +50,20 @@ const LoginScreen = () => {
   };
 
   return (
+    <div className="maindiv">
+
+    <div className="ImageContainer">
+      <img class="ImgClass" src={ImageRegister} alt="register" />
+    </div>
+
+     <video ref={videoRef} className="bg-video" autoPlay muted loop playsInline>
+      <source src={BgVideo} type="video/mp4" />
+    </video>
+      <div className="video-overlay"></div>
+
+    <div className="RegisterLoginContainer">
     <FormContainer>
+      
       <h1>Sign In</h1>
 
       <Form onSubmit={submitHandler}>
@@ -50,6 +76,7 @@ const LoginScreen = () => {
             onChange={(e) => setEmail(e.target.value)}
           />
         </Form.Group>
+
 
         <Form.Group className="my-2" controlId="password">
           <Form.Label>Password</Form.Label>
@@ -70,10 +97,12 @@ const LoginScreen = () => {
 
       <Row className="py-3">
         <Col>
-          No account? <Link to="/register">Register</Link>
+          New user? <Link to="/register">Register a new account</Link>
         </Col>
       </Row>
     </FormContainer>
+     </div>
+    </div>
   );
 };
 
