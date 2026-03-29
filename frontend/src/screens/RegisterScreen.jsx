@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import Loader from '../components/Loader';
 import { useRegisterMutation } from '../slices/userApiSlice';
 import { setCredentials } from '../slices/authSlice';
-import ImageRegister from '../Images/backgroundRegisterLogin.svg'
+import ImageRegister from '../Images/Register.svg'
 import BgVideo from '../Videos/Video1.mp4'
 import { useRef } from 'react';
 
@@ -71,7 +71,7 @@ const RegisterScreen = () => {
 
       <div className="RegisterLoginContainer">
     <FormContainer>
-      
+
       <h1>Register</h1>
 
       <Form onSubmit={submitHandler}>
