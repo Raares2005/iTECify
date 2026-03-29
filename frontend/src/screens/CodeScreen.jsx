@@ -8,6 +8,12 @@ function CodeScreen() {
 
   const [selectedFile, setSelectedFile] = useState(null);
 
+const [aiPopupOpen, setAiPopupOpen] = useState(false)
+const [aiPrompt, setAiPrompt] = useState('')
+const [aiLoading, setAiLoading] = useState(false)
+const [aiResult, setAiResult] = useState('')
+const [selectionData, setSelectionData] = useState(null)
+
   return (
     <div style={{ display: 'flex' }}>
       <FileExplorer
