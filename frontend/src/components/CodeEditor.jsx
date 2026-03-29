@@ -1,54 +1,61 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import * as Y from 'yjs'
-import { WebsocketProvider } from 'y-websocket'
-import { MonacoBinding } from 'y-monaco'
-import Editor from '@monaco-editor/react'
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import * as Y from "yjs";
+import { WebsocketProvider } from "y-websocket";
+import { MonacoBinding } from "y-monaco";
+import Editor from "@monaco-editor/react";
 
 function randomColor() {
-  const colors = ['#ff6b6b', '#4dabf7', '#51cf66', '#ffd43b', '#b197fc', '#ffa94d']
-  return colors[Math.floor(Math.random() * colors.length)]
+  const colors = [
+    "#ff6b6b",
+    "#4dabf7",
+    "#51cf66",
+    "#ffd43b",
+    "#b197fc",
+    "#ffa94d",
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
 }
 
-function getLanguageFromFileName(fileName = '') {
-  if (fileName.endsWith('.js')) return 'javascript'
-  if (fileName.endsWith('.jsx')) return 'javascript'
-  if (fileName.endsWith('.ts')) return 'typescript'
-  if (fileName.endsWith('.tsx')) return 'typescript'
-  if (fileName.endsWith('.json')) return 'json'
-  if (fileName.endsWith('.css')) return 'css'
-  if (fileName.endsWith('.html')) return 'html'
-  if (fileName.endsWith('.py')) return 'python'
-  if (fileName.endsWith('.java')) return 'java'
-  if (fileName.endsWith('.cpp')) return 'cpp'
-  return 'plaintext'
+function getLanguageFromFileName(fileName = "") {
+  if (fileName.endsWith(".js")) return "javascript";
+  if (fileName.endsWith(".jsx")) return "javascript";
+  if (fileName.endsWith(".ts")) return "typescript";
+  if (fileName.endsWith(".tsx")) return "typescript";
+  if (fileName.endsWith(".json")) return "json";
+  if (fileName.endsWith(".css")) return "css";
+  if (fileName.endsWith(".html")) return "html";
+  if (fileName.endsWith(".py")) return "python";
+  if (fileName.endsWith(".java")) return "java";
+  if (fileName.endsWith(".cpp")) return "cpp";
+  return "plaintext";
 }
 
 function CodeEditor({
-  roomName = 'file:default',
-  userName = 'Guest',
+  roomName = "file:default",
+  userName = "Guest",
   fileId,
-  fileName = 'main.js'
+  fileName = "main.js",
 }) {
-  const editorRef = useRef(null)
-  const monacoRef = useRef(null)
-  const collaborationRef = useRef(null)
-  const isInitialized = useRef(false)
-  const decorationIdsRef = useRef([])
-  const styleElementRef = useRef(null)
-  const saveTimeoutRef = useRef(null)
-  const hasLoadedInitialContentRef = useRef(false)
-  const isApplyingInitialContentRef = useRef(false)
+  const editorRef = useRef(null);
+  const monacoRef = useRef(null);
+  const collaborationRef = useRef(null);
+  const isInitialized = useRef(false);
+  const decorationIdsRef = useRef([]);
+  const styleElementRef = useRef(null);
+  const saveTimeoutRef = useRef(null);
+  const hasLoadedInitialContentRef = useRef(false);
+  const isApplyingInitialContentRef = useRef(false);
 
-  const [collaborators, setCollaborators] = useState([])
-  const userColor = useMemo(() => randomColor(), [])
+  const [collaborators, setCollaborators] = useState([]);
+  const userColor = useMemo(() => randomColor(), []);
 
   const injectCursorStyle = (clientId, color, name) => {
     if (!styleElementRef.current) {
-      styleElementRef.current = document.createElement('style')
-      document.head.appendChild(styleElementRef.current)
+      styleElementRef.current = document.createElement("style");
+      document.head.appendChild(styleElementRef.current);
     }
 
-    const styleId = `remote-line-${clientId}`
+    const styleId = `remote-line-${clientId}`;
     const css = `
       .${styleId} {
         background: ${color}22;
@@ -67,154 +74,158 @@ function CodeEditor({
         border-radius: 999px;
         pointer-events: none;
       }
-    `
+    `;
 
     if (!styleElementRef.current.innerHTML.includes(styleId)) {
-      styleElementRef.current.innerHTML += css
+      styleElementRef.current.innerHTML += css;
     }
-  }
+  };
 
   const saveFileToBackend = async (content) => {
-    if (!fileId) return
+    if (!fileId) return;
 
     try {
       const res = await fetch(`http://localhost:5000/api/files/${fileId}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ content })
-      })
+        body: JSON.stringify({ content }),
+      });
 
-      const data = await res.json()
+      const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || 'Failed to save file')
+        throw new Error(data.message || "Failed to save file");
       }
 
-      console.log('File saved')
+      console.log("File saved");
     } catch (error) {
-      console.error('Error saving file:', error)
+      console.error("Error saving file:", error);
     }
-  }
+  };
 
   const scheduleSave = (content) => {
-    if (!fileId) return
-    if (!hasLoadedInitialContentRef.current) return
-    if (isApplyingInitialContentRef.current) return
+    if (!fileId) return;
+    if (!hasLoadedInitialContentRef.current) return;
+    if (isApplyingInitialContentRef.current) return;
 
     if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current)
+      clearTimeout(saveTimeoutRef.current);
     }
 
     saveTimeoutRef.current = setTimeout(() => {
-      saveFileToBackend(content)
-    }, 2000)
-  }
+      saveFileToBackend(content);
+    }, 2000);
+  };
 
   const handleMount = async (editor, monaco) => {
-    if (isInitialized.current) return
-    isInitialized.current = true
+    if (isInitialized.current) return;
+    isInitialized.current = true;
 
-    editorRef.current = editor
-    monacoRef.current = monaco
+    editorRef.current = editor;
+    monacoRef.current = monaco;
 
-    const ydoc = new Y.Doc()
-    const provider = new WebsocketProvider('ws://localhost:1234', roomName, ydoc)
+    const ydoc = new Y.Doc();
+    const provider = new WebsocketProvider(
+      "ws://localhost:1234",
+      roomName,
+      ydoc,
+    );
 
-    provider.awareness.setLocalStateField('user', {
+    provider.awareness.setLocalStateField("user", {
       name: userName,
       color: userColor,
-      avatar: userName?.[0]?.toUpperCase() || 'U'
-    })
+      avatar: userName?.[0]?.toUpperCase() || "U",
+    });
 
     const updateLocalCursor = () => {
-      const position = editor.getPosition()
-      if (!position) return
+      const position = editor.getPosition();
+      if (!position) return;
 
-      provider.awareness.setLocalStateField('cursor', {
-        lineNumber: position.lineNumber
-      })
-    }
+      provider.awareness.setLocalStateField("cursor", {
+        lineNumber: position.lineNumber,
+      });
+    };
 
     const updateCollaborators = () => {
-      const states = Array.from(provider.awareness.getStates().entries())
+      const states = Array.from(provider.awareness.getStates().entries());
 
       const users = states
         .map(([clientId, state]) => ({
           clientId,
           ...(state.user || {}),
-          cursor: state.cursor || null
+          cursor: state.cursor || null,
         }))
-        .filter(user => user.name)
+        .filter((user) => user.name);
 
-      setCollaborators(users)
+      setCollaborators(users);
 
       const remoteUsers = users.filter(
-        user => user.clientId !== provider.awareness.clientID
-      )
+        (user) => user.clientId !== provider.awareness.clientID,
+      );
 
-      const decorations = []
+      const decorations = [];
 
-      remoteUsers.forEach(user => {
-        const lineNumber = user.cursor?.lineNumber
-        if (!lineNumber) return
+      remoteUsers.forEach((user) => {
+        const lineNumber = user.cursor?.lineNumber;
+        if (!lineNumber) return;
 
-        const className = `remote-line-${user.clientId}`
-        injectCursorStyle(user.clientId, user.color || '#666', user.name)
+        const className = `remote-line-${user.clientId}`;
+        injectCursorStyle(user.clientId, user.color || "#666", user.name);
 
         decorations.push({
           range: new monaco.Range(lineNumber, 1, lineNumber, 1),
           options: {
             isWholeLine: true,
-            className
-          }
-        })
-      })
+            className,
+          },
+        });
+      });
 
       decorationIdsRef.current = editor.deltaDecorations(
         decorationIdsRef.current,
-        decorations
-      )
-    }
+        decorations,
+      );
+    };
 
-    provider.awareness.on('change', updateCollaborators)
-    editor.onDidChangeCursorPosition(updateLocalCursor)
+    provider.awareness.on("change", updateCollaborators);
+    editor.onDidChangeCursorPosition(updateLocalCursor);
 
-    updateLocalCursor()
-    updateCollaborators()
+    updateLocalCursor();
+    updateCollaborators();
 
-    provider.on('status', event => {
-      console.log('WebSocket status:', event.status)
-    })
+    provider.on("status", (event) => {
+      console.log("WebSocket status:", event.status);
+    });
 
-    const modelPath = `file:///${fileName}`
-    const uri = monaco.Uri.parse(modelPath)
-    const language = getLanguageFromFileName(fileName)
+    const modelPath = `file:///${fileName}`;
+    const uri = monaco.Uri.parse(modelPath);
+    const language = getLanguageFromFileName(fileName);
 
-    let model = monaco.editor.getModel(uri)
+    let model = monaco.editor.getModel(uri);
 
     if (!model) {
-      model = monaco.editor.createModel('', language, uri)
+      model = monaco.editor.createModel("", language, uri);
     }
 
-    editor.setModel(model)
+    editor.setModel(model);
 
-    const yText = ydoc.getText(roomName)
+    const yText = ydoc.getText(roomName);
 
     const binding = new MonacoBinding(
       yText,
       model,
       new Set([editor]),
-      provider.awareness
-    )
+      provider.awareness,
+    );
 
     const handleYTextChange = () => {
-      const content = yText.toString()
-      scheduleSave(content)
-    }
+      const content = yText.toString();
+      scheduleSave(content);
+    };
 
-    yText.observe(handleYTextChange)
+    yText.observe(handleYTextChange);
 
     collaborationRef.current = {
       ydoc,
@@ -222,43 +233,43 @@ function CodeEditor({
       binding,
       updateCollaborators,
       yText,
-      handleYTextChange
-    }
+      handleYTextChange,
+    };
 
     if (fileId) {
       try {
-        const res = await fetch(`http://localhost:5000/api/files/${fileId}`)
-        const data = await res.json()
+        const res = await fetch(`http://localhost:5000/api/files/${fileId}`);
+        const data = await res.json();
 
         if (!res.ok) {
-          throw new Error(data.message || 'Failed to load file')
+          throw new Error(data.message || "Failed to load file");
         }
 
-        const initialContent = data.content || ''
+        const initialContent = data.content || "";
 
-        isApplyingInitialContentRef.current = true
+        isApplyingInitialContentRef.current = true;
 
         ydoc.transact(() => {
-          yText.delete(0, yText.length)
-          yText.insert(0, initialContent)
-        })
+          yText.delete(0, yText.length);
+          yText.insert(0, initialContent);
+        });
 
-        isApplyingInitialContentRef.current = false
-        hasLoadedInitialContentRef.current = true
+        isApplyingInitialContentRef.current = false;
+        hasLoadedInitialContentRef.current = true;
       } catch (error) {
-        isApplyingInitialContentRef.current = false
-        console.error('Error loading file:', error)
+        isApplyingInitialContentRef.current = false;
+        console.error("Error loading file:", error);
       }
     } else {
-      hasLoadedInitialContentRef.current = true
+      hasLoadedInitialContentRef.current = true;
     }
-  }
+  };
 
   useEffect(() => {
     const cleanup = () => {
       if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
-        saveTimeoutRef.current = null
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
       }
 
       if (collaborationRef.current) {
@@ -268,102 +279,105 @@ function CodeEditor({
           ydoc,
           updateCollaborators,
           yText,
-          handleYTextChange
-        } = collaborationRef.current
+          handleYTextChange,
+        } = collaborationRef.current;
 
-        provider.awareness.off('change', updateCollaborators)
-        yText.unobserve(handleYTextChange)
-        binding.destroy()
-        provider.disconnect()
-        provider.destroy()
-        ydoc.destroy()
+        provider.awareness.off("change", updateCollaborators);
+        yText.unobserve(handleYTextChange);
+        binding.destroy();
+        provider.disconnect();
+        provider.destroy();
+        ydoc.destroy();
 
-        collaborationRef.current = null
-        isInitialized.current = false
+        collaborationRef.current = null;
+        isInitialized.current = false;
       }
 
       if (editorRef.current) {
         decorationIdsRef.current = editorRef.current.deltaDecorations(
           decorationIdsRef.current,
-          []
-        )
+          [],
+        );
       }
 
       if (styleElementRef.current) {
-        styleElementRef.current.remove()
-        styleElementRef.current = null
+        styleElementRef.current.remove();
+        styleElementRef.current = null;
       }
 
-      hasLoadedInitialContentRef.current = false
-      isApplyingInitialContentRef.current = false
-      setCollaborators([])
-    }
+      hasLoadedInitialContentRef.current = false;
+      isApplyingInitialContentRef.current = false;
+      setCollaborators([]);
+    };
 
-    window.addEventListener('beforeunload', cleanup)
+    window.addEventListener("beforeunload", cleanup);
 
     return () => {
-      cleanup()
-      window.removeEventListener('beforeunload', cleanup)
-    }
-  }, [roomName, fileId, fileName])
+      cleanup();
+      window.removeEventListener("beforeunload", cleanup);
+    };
+  }, [roomName, fileId, fileName]);
 
   return (
     <div
       style={{
-        position: 'relative',
-        height: '100vh',
-        width: '80vw'
+        position: "relative",
+        height: "100vh",
+        width: "80vw",
       }}
     >
       <div>
+        <div
+          style={{
+            position: "relative",
+            left: 0,
+            zIndex: 10,
+            background: `
+  radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.2), transparent 25%),
+  radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.15), transparent 30%),
+  linear-gradient(135deg, #ffffff, #dbeafe, #60a5fa)
+`,
+            color: "black",
+            padding: "10px 12px",
+            fontSize: "26px",
+            fontWeight: 600,
+          }}
+        >
+          {fileName}
+        </div>
+      </div>
 
       <div
         style={{
-          position: 'relative',
-          left: 0,
-          zIndex: 10,
-          background: '#1e1e1e',
-          color: 'white',
-          padding: '8px 12px',
-          fontSize: '13px',
-          fontWeight: 600
-        }}
-      >
-        {fileName}
-      </div>
-      </div>
-
-      <div
-        style={{
-          position: 'absolute',
+          position: "absolute",
           top: 40,
           right: 12,
           zIndex: 10,
-          display: 'flex',
-          gap: '8px',
-          background: '#1e1e1e',
-          padding: '8px 10px',
-          borderRadius: '12px',
-          color: 'white'
+          display: "flex",
+          gap: "8px",
+          background: "#1e1e1e",
+          padding: "8px 10px",
+          borderRadius: "12px",
+          color: "white",
         }}
       >
-        {collaborators.map(user => (
+        {collaborators.map((user) => (
           <div
             key={user.clientId}
             title={user.name}
             style={{
               width: 28,
               height: 28,
-              borderRadius: '50%',
-              background: user.color || '#666',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              borderRadius: "50%",
+              background: user.color || "#666",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               fontSize: 12,
-              fontWeight: 'bold'
+              fontWeight: "bold",
             }}
           >
-            {user.avatar || '?'}
+            {user.avatar || "?"}
           </div>
         ))}
       </div>
@@ -375,7 +389,7 @@ function CodeEditor({
         onMount={handleMount}
       />
     </div>
-  )
+  );
 }
 
-export default CodeEditor
+export default CodeEditor;
