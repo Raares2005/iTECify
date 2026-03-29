@@ -81,7 +81,7 @@ function FileExplorer({ onSelectFile, selectedFileId }) {
   return (
     <div
       style={{
-        position: 'absolute',
+        position: 'relative',
         height: '100vh',
         width: '20vw',
         left: '0',
