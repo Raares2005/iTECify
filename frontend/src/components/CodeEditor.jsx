@@ -9,7 +9,7 @@ function randomColor() {
   return colors[Math.floor(Math.random() * colors.length)]
 }
 
-function getLanguageFromFileName(fileName) {
+function getLanguageFromFileName(fileName = '') {
   if (fileName.endsWith('.js')) return 'javascript'
   if (fileName.endsWith('.jsx')) return 'javascript'
   if (fileName.endsWith('.ts')) return 'typescript'
@@ -24,9 +24,10 @@ function getLanguageFromFileName(fileName) {
 }
 
 function CodeEditor({
-  roomName = 'file:src/App.js',
+  roomName = 'file:default',
   userName = 'Guest',
-  fileId
+  fileId,
+  fileName = 'main.js'
 }) {
   const editorRef = useRef(null)
   const monacoRef = useRef(null)
@@ -108,7 +109,7 @@ function CodeEditor({
 
     saveTimeoutRef.current = setTimeout(() => {
       saveFileToBackend(content)
-    }, 500)
+    }, 2000)
   }
 
   const handleMount = async (editor, monaco) => {
@@ -187,8 +188,9 @@ function CodeEditor({
       console.log('WebSocket status:', event.status)
     })
 
-    const uri = monaco.Uri.parse(`file://${roomName}`)
-    const language = getLanguageFromFileName(roomName)
+    const modelPath = `file:///${fileName}`
+    const uri = monaco.Uri.parse(modelPath)
+    const language = getLanguageFromFileName(fileName)
 
     let model = monaco.editor.getModel(uri)
 
@@ -271,8 +273,8 @@ function CodeEditor({
 
         provider.awareness.off('change', updateCollaborators)
         yText.unobserve(handleYTextChange)
-        provider.disconnect()
         binding.destroy()
+        provider.disconnect()
         provider.destroy()
         ydoc.destroy()
 
@@ -294,6 +296,7 @@ function CodeEditor({
 
       hasLoadedInitialContentRef.current = false
       isApplyingInitialContentRef.current = false
+      setCollaborators([])
     }
 
     window.addEventListener('beforeunload', cleanup)
@@ -302,7 +305,7 @@ function CodeEditor({
       cleanup()
       window.removeEventListener('beforeunload', cleanup)
     }
-  }, [roomName, fileId])
+  }, [roomName, fileId, fileName])
 
   return (
     <div
@@ -313,10 +316,28 @@ function CodeEditor({
         left: '20vw'
       }}
     >
+      <div>
+
+      <div
+        style={{
+          position: 'relative',
+          left: 0,
+          zIndex: 10,
+          background: '#1e1e1e',
+          color: 'white',
+          padding: '8px 12px',
+          fontSize: '13px',
+          fontWeight: 600
+        }}
+      >
+        {fileName}
+      </div>
+      </div>
+
       <div
         style={{
           position: 'absolute',
-          top: 12,
+          top: 40,
           right: 12,
           zIndex: 10,
           display: 'flex',
@@ -350,8 +371,8 @@ function CodeEditor({
 
       <Editor
         height="100%"
-        path={roomName}
-        defaultLanguage={getLanguageFromFileName(roomName)}
+        path={fileName}
+        defaultLanguage={getLanguageFromFileName(fileName)}
         onMount={handleMount}
       />
     </div>
